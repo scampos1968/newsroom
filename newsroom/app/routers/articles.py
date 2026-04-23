@@ -100,3 +100,12 @@ def toggle_favorite(article_id: int, session: Session = Depends(get_session)):
     session.add(article)
     session.commit()
     return {"is_favorite": article.is_favorite}
+
+
+@router.delete("/{article_id}", status_code=204)
+def delete_article(article_id: int, session: Session = Depends(get_session)):
+    article = session.get(Article, article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    session.delete(article)
+    session.commit()

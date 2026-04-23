@@ -65,6 +65,10 @@
   .author-pill-name { font-size: 11px; font-weight: 500; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .author-pill-sep { font-size: 10px; color: var(--ink-faint); flex-shrink: 0; }
   .author-pill-venue { font-size: 11px; color: var(--ink-faint); white-space: nowrap; flex-shrink: 0; }
+  .author-pill-spacer { flex: 1; min-width: 4px; }
+  .author-pill-delete { width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; color: var(--ink-faint); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .author-pill-delete:active { background: var(--rule); }
+  .author-pill-delete svg { width: 12px; height: 12px; }
   .card-date { font-size: 11px; color: var(--ink-faint); white-space: nowrap; flex-shrink: 0; }
   .unread-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
   .card-icons { display: flex; gap: 2px; flex-shrink: 0; }
@@ -367,11 +371,13 @@ let articles = [];
 let activeFilter = 'all';
 let prevScreen = 'screen-feed';
 let lastUpdate = null;
+let currentAuthorArticles = null;
 
 async function api(path, opts={}) {
   try {
     const r = await fetch(API+path, {headers:{'Content-Type':'application/json'},...opts});
     if(!r.ok) throw new Error(r.status);
+    if(r.status === 204) return null;
     return await r.json();
   } catch(e) { showToast('Erro ao conectar'); throw e; }
 }
@@ -406,6 +412,9 @@ function updateLastUpdate() {
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 function color(idx) { return AVCOLORS[(idx||0) % AVCOLORS.length]; }
 function venueShort(v) { return VENUE_SHORT[v]||v; }
+function cleanTitle(title) {
+  return (title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO|The Economist)\s*$/i,'').trim();
+}
 function fmtDate(iso) {
   if(!iso) return '';
   const d = new Date(iso), now = new Date(), diff = (now-d)/1000;
@@ -436,7 +445,7 @@ function renderFeed(list, containerId) {
     const dateStr = fmtDate(art.published_at);
     const isFav = art.is_favorite;
     const isRead = art.is_read;
-    const title = (art.title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO)\s*$/i,'').trim();
+    const title = cleanTitle(art.title);
     const venue = venueShort(auth.venue||'');
 
     if(i===0 && activeFilter==='all' && containerId==='feed-list') {
@@ -467,6 +476,10 @@ function renderFeed(list, containerId) {
             <div class="author-pill" onclick="event.stopPropagation();openAuthorArticles(${auth.id},'${(auth.name||'').replace(/'/g,"\\'")}')">
               <div class="av-mini ${col}">${ini}</div>
               <span class="author-pill-name">${auth.name||''}</span><span class="author-pill-sep"> · </span><span class="author-pill-venue">${venue}</span>
+              <span class="author-pill-spacer"></span>
+              <button class="author-pill-delete" onclick="event.stopPropagation();deleteArticle(${art.id})" title="Apagar artigo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              </button>
             </div>
             ${!isRead?'<div class="unread-dot"></div>':''}
             <span class="card-date">${dateStr}</span>
@@ -493,7 +506,7 @@ async function openDetail(id) {
   const auth = authors.find(a=>a.id===art.author_id)||{};
   const col = color(authorColorIdx(art.author_id));
   const ini = initials(auth.name);
-  const title = (art.title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO)\s*$/i,'').trim();
+  const title = cleanTitle(art.title);
   if(!art.is_read) {
     const data = await api(`/articles/${id}/read`,{method:'PATCH'});
     art.is_read = data.is_read;
@@ -568,6 +581,20 @@ async function toggleFav(id, btn) {
   showToast(data.is_favorite?'Artigo salvo':'Removido dos favoritos');
 }
 
+async function deleteArticle(id) {
+  await api(`/articles/${id}`, {method:'DELETE'});
+  articles = articles.filter(a => a.id !== id);
+  updateUnreadBadge();
+  if(document.getElementById('screen-feed').classList.contains('active')) {
+    await loadFeed();
+  } else if(document.getElementById('screen-favorites').classList.contains('active')) {
+    await loadFavorites();
+  } else if(document.getElementById('screen-author-articles').classList.contains('active') && currentAuthorArticles) {
+    await openAuthorArticles(currentAuthorArticles.id, currentAuthorArticles.name);
+  }
+  showToast('Artigo apagado');
+}
+
 function filterTag(tag, btn) {
   activeFilter = tag;
   document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
@@ -612,6 +639,7 @@ async function toggleAuthor(id, btn) {
 }
 
 async function openAuthorArticles(authorId, authorName) {
+  currentAuthorArticles = {id: authorId, name: authorName};
   document.getElementById('author-screen-name').textContent = authorName;
   document.getElementById('author-articles-list').innerHTML = '<div class="loading-bar"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>';
   showScreen('screen-author-articles');

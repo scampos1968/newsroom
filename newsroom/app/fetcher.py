@@ -155,6 +155,7 @@ def fetch_scrape(author: Author, session: Session):
 
     soup = BeautifulSoup(resp.text, "html.parser")
     saved = 0
+    considered = 0
     is_estadao = "estadao.com.br" in author.scrape_url
     url_pattern = author.filter_byline  # reused field: URL pattern filter
     seen = set()
@@ -199,28 +200,30 @@ def fetch_scrape(author: Author, session: Session):
             continue
         seen.add(href)
 
+        considered += 1
+
         existing = session.exec(select(Article).where(Article.url == href)).first()
-        if existing:
-            continue
+        if not existing:
+            # Extract date from URL or fetch from article
+            if is_estadao:
+                pub_date = fetch_article_date_estadao(href)
+            else:
+                pub_date = extract_date_from_url(href) or now_sp()
 
-        # Extract date from URL or fetch from article
-        if is_estadao:
-            pub_date = fetch_article_date_estadao(href)
-        else:
-            pub_date = extract_date_from_url(href) or now_sp()
+            article = Article(
+                author_id=author.id,
+                title=title,
+                url=href,
+                published_at=pub_date or now_sp(),
+                tags=author.tags,
+            )
+            session.add(article)
+            saved += 1
 
-        article = Article(
-            author_id=author.id,
-            title=title,
-            url=href,
-            published_at=pub_date or now_sp(),
-            tags=author.tags,
-        )
-        session.add(article)
-        saved += 1
-        if saved >= author.max_articles:
+        if considered >= author.max_articles:
             break
 
+    _prune_author_articles(author, session)
     session.commit()
     logger.info(f"  → saved {saved} new articles for {author.name}")
 
@@ -230,6 +233,20 @@ def _clean_summary(text: str) -> str:
         return ""
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text(separator=" ", strip=True)[:800]
+
+
+def _prune_author_articles(author: Author, session: Session):
+    if author.max_articles <= 0:
+        return
+
+    articles = session.exec(
+        select(Article)
+        .where(Article.author_id == author.id)
+        .order_by(Article.published_at.desc(), Article.fetched_at.desc(), Article.id.desc())
+    ).all()
+
+    for article in articles[author.max_articles:]:
+        session.delete(article)
 
 
 def fetch_all_feeds():
