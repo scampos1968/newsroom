@@ -159,6 +159,7 @@ def fetch_scrape(author: Author, session: Session):
     is_estadao = "estadao.com.br" in author.scrape_url
     url_pattern = author.filter_byline  # reused field: URL pattern filter
     seen = set()
+    keep_urls = []
 
     # O Globo: use feed-post-link class which has correct titles
     # Estadão: use all links and filter by URL pattern
@@ -199,6 +200,7 @@ def fetch_scrape(author: Author, session: Session):
         if href in seen:
             continue
         seen.add(href)
+        keep_urls.append(href)
 
         considered += 1
 
@@ -223,7 +225,10 @@ def fetch_scrape(author: Author, session: Session):
         if considered >= author.max_articles:
             break
 
-    _prune_author_articles(author, session)
+    if is_estadao:
+        _prune_author_articles(author, session)
+    else:
+        _prune_scraped_author_articles(author, keep_urls, session)
     session.commit()
     logger.info(f"  → saved {saved} new articles for {author.name}")
 
@@ -247,6 +252,17 @@ def _prune_author_articles(author: Author, session: Session):
 
     for article in articles[author.max_articles:]:
         session.delete(article)
+
+
+def _prune_scraped_author_articles(author: Author, keep_urls: list[str], session: Session):
+    articles = session.exec(
+        select(Article).where(Article.author_id == author.id)
+    ).all()
+
+    keep_set = set(keep_urls[: author.max_articles])
+    for article in articles:
+        if article.url not in keep_set:
+            session.delete(article)
 
 
 def fetch_all_feeds():
