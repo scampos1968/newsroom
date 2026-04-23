@@ -30,11 +30,11 @@
 
   /* ── TOPBAR ── */
   .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 0; position: sticky; top: 0; z-index: 50; background: var(--cream); }
-  .topbar-left { display: flex; flex-direction: column; gap: 1px; }
+  .topbar-left { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .topbar-title { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
   .topbar-title span { color: var(--gold); font-style: italic; }
-  .topbar-byline { font-family: var(--condensed); font-size: 12px; font-weight: 300; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); line-height: 1; }
-  .topbar-byline span { color: var(--gold); }
+  .topbar-byline { font-family: var(--condensed); font-size: 12px; font-weight: 300; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); line-height: 1; white-space: nowrap; }
+  .topbar-byline span { color: var(--gold); letter-spacing: 0.02em; }
   .topbar-actions { display: flex; gap: 6px; }
   .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); }
   .icon-btn:active { background: var(--cream-dark); }
@@ -68,7 +68,7 @@
   .card-date { font-size: 11px; color: var(--ink-faint); white-space: nowrap; flex-shrink: 0; }
   .unread-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
   .card-icons { display: flex; gap: 2px; flex-shrink: 0; }
-  .card-icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--rule); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); transition: all 0.15s; }
+  .card-icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--rule); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #7AAED6; transition: all 0.15s; }
   .card-icon-btn:active { background: var(--cream-dark); }
   .card-icon-btn svg { width: 15px; height: 15px; }
   .card-icon-btn.fav { color: var(--gold); border-color: var(--gold-pale); }
@@ -230,10 +230,10 @@
 <!-- ── FEED ── -->
 <div class="screen active" id="screen-feed">
   <div class="status-space"></div>
-  <div class="topbar">
+    <div class="topbar">
     <div class="topbar-left">
       <div class="topbar-title">News<span>room</span></div>
-      <div class="topbar-byline">— <span>Sergio Campos</span></div>
+      <div class="topbar-byline">by <span>Sergio Campos</span></div>
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="triggerFetch()" title="Atualizar">
@@ -449,7 +449,7 @@ function renderFeed(list, containerId) {
             <span class="hero-author-name">${auth.name||''}</span>
             <span class="hero-date">${dateStr}</span>
             <div class="hero-icons" onclick="event.stopPropagation()">
-              <button class="hero-icon-btn ${isRead?'read':''}" onclick="markRead(${art.id},this)">
+              <button class="hero-icon-btn ${isRead?'read':''}" data-read-btn="${art.id}" onclick="markRead(${art.id},this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
               <button class="hero-icon-btn ${isFav?'fav':''}" onclick="toggleFav(${art.id},this)">
@@ -471,7 +471,7 @@ function renderFeed(list, containerId) {
             ${!isRead?'<div class="unread-dot"></div>':''}
             <span class="card-date">${dateStr}</span>
             <div class="card-icons" onclick="event.stopPropagation()">
-              <button class="card-icon-btn ${isRead?'read':''}" onclick="markRead(${art.id},this)">
+              <button class="card-icon-btn ${isRead?'read':''}" data-read-btn="${art.id}" onclick="markRead(${art.id},this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
               <button class="card-icon-btn ${isFav?'fav':''}" onclick="toggleFav(${art.id},this)">
@@ -494,9 +494,12 @@ async function openDetail(id) {
   const col = color(authorColorIdx(art.author_id));
   const ini = initials(auth.name);
   const title = (art.title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO)\s*$/i,'').trim();
-  await api(`/articles/${id}/read`,{method:'PATCH'});
-  art.is_read = true;
-  updateUnreadBadge();
+  if(!art.is_read) {
+    const data = await api(`/articles/${id}/read`,{method:'PATCH'});
+    art.is_read = data.is_read;
+    updateReadUI(id, data.is_read);
+    updateUnreadBadge();
+  }
   document.getElementById('detail-venue-top').textContent = auth.venue||'';
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-tags">${(art.tags||[]).map(t=>`<span class="card-tag ${TAG_CLASS[t]||''}">${t}</span>`).join('')}</div>
@@ -527,13 +530,31 @@ async function toggleFavDetail(id) {
 }
 
 async function markRead(id, btn) {
-  await api(`/articles/${id}/read`,{method:'PATCH'});
+  const data = await api(`/articles/${id}/read`,{method:'PATCH'});
   const art = articles.find(a=>a.id===id);
-  if(art) art.is_read = true;
-  const card = document.getElementById(`card-${id}`);
-  if(card) card.classList.add('is-read');
-  if(btn) btn.classList.add('read');
+  if(art) art.is_read = data.is_read;
+  updateReadUI(id, data.is_read);
   updateUnreadBadge();
+  showToast(data.is_read ? 'Marcado como lido' : 'Marcado como nao lido');
+}
+
+function updateReadUI(id, isRead) {
+  const card = document.getElementById(`card-${id}`);
+  if(card) {
+    card.classList.toggle('is-read', isRead);
+    const meta = card.querySelector('.card-meta');
+    const dot = card.querySelector('.unread-dot');
+    if(!isRead && meta && !dot) {
+      const date = meta.querySelector('.card-date');
+      const unreadDot = document.createElement('div');
+      unreadDot.className = 'unread-dot';
+      if(date) meta.insertBefore(unreadDot, date);
+    }
+    if(isRead && dot) dot.remove();
+  }
+  document.querySelectorAll(`[data-read-btn="${id}"]`).forEach((button) => {
+    button.classList.toggle('read', isRead);
+  });
 }
 
 async function toggleFav(id, btn) {

@@ -67,7 +67,7 @@ def list_articles(
     if favorites_only:
         query = query.where(Article.is_favorite == True)
 
-    query = query.order_by(Article.published_at.desc()).offset(offset).limit(limit)
+    query = query.order_by(Article.is_read.asc(), Article.published_at.desc()).offset(offset).limit(limit)
     rows = session.exec(query).all()
 
     results = []
@@ -85,10 +85,10 @@ def mark_read(article_id: int, session: Session = Depends(get_session)):
     article = session.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-    article.is_read = True
+    article.is_read = not article.is_read
     session.add(article)
     session.commit()
-    return {"ok": True}
+    return {"is_read": article.is_read}
 
 
 @router.patch("/{article_id}/favorite")
