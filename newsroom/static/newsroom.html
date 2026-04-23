@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Newsroom</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231A1714'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='38' font-weight='700' fill='%23C4963A' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Sans+Condensed:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8; --cream-dark: #EDE6D8; --ink: #1A1714; --ink-soft: #3D3830;
+    --ink-muted: #7A7060; --ink-faint: #B5A898; --gold: #C4963A;
+    --gold-pale: #F7EDD4; --rule: rgba(26,23,20,0.12);
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'DM Sans', sans-serif;
+    --condensed: 'DM Sans', sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  [data-theme="dark"] {
+    --cream: #141210; --cream-dark: #1C1916; --ink: #F0EAE0; --ink-soft: #D4CABF;
+    --ink-muted: #8A7E70; --ink-faint: #4A4238; --gold: #D4A84A;
+    --gold-pale: #1E1A12; --rule: rgba(240,234,224,0.1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--sans); background: var(--cream); color: var(--ink); min-height: 100dvh; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+  .screen { display: none; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+  .status-space { height: calc(var(--safe-top) + 12px); }
+
+  /* ── TOPBAR ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 0; position: sticky; top: 0; z-index: 50; background: var(--cream); }
+  .topbar-left { display: flex; flex-direction: column; gap: 1px; }
+  .topbar-title { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
+  .topbar-title span { color: var(--gold); font-style: italic; }
+  .topbar-byline { font-family: var(--condensed); font-size: 12px; font-weight: 300; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); line-height: 1; }
+  .topbar-byline span { color: var(--gold); }
+  .topbar-actions { display: flex; gap: 6px; }
+  .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+  .icon-btn:active { background: var(--cream-dark); }
+  .icon-btn svg { width: 19px; height: 19px; }
+
+  /* ── DATE + LAST UPDATE ── */
+  .date-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 0; }
+  .date-header { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .last-update { font-size: 10px; color: var(--ink-faint); letter-spacing: 0.04em; }
+  .last-update span { color: var(--ink-muted); }
+
+  /* ── PILLS ── */
+  .pills-wrap { overflow-x: auto; padding: 12px 20px 0; scrollbar-width: none; }
+  .pills-wrap::-webkit-scrollbar { display: none; }
+  .pills { display: flex; gap: 8px; width: max-content; }
+  .pill { padding: 5px 14px; border-radius: 999px; font-size: 11px; border: 1px solid var(--rule); background: transparent; color: var(--ink-muted); cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+  .pill.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .hr { height: 1px; background: var(--rule); margin: 12px 20px 0; }
+  .feed { flex: 1; overflow-y: auto; padding-bottom: calc(80px + var(--safe-bottom)); }
+
+  /* ── ARTICLE CARD ── */
+  .article-card { padding: 14px 20px 0; cursor: pointer; animation: fadeUp 0.4s ease both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .card-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+  .author-pill { display: flex; align-items: center; gap: 5px; padding: 3px 8px 3px 3px; border-radius: 999px; background: var(--cream-dark); border: 1px solid var(--rule); cursor: pointer; flex: 1; min-width: 0; }
+  .author-pill:active { opacity: 0.7; }
+  .av-mini { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 500; flex-shrink: 0; }
+  .author-pill-name { font-size: 11px; font-weight: 500; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .author-pill-sep { font-size: 10px; color: var(--ink-faint); flex-shrink: 0; }
+  .author-pill-venue { font-size: 11px; color: var(--ink-faint); white-space: nowrap; flex-shrink: 0; }
+  .card-date { font-size: 11px; color: var(--ink-faint); white-space: nowrap; flex-shrink: 0; }
+  .unread-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .card-icons { display: flex; gap: 2px; flex-shrink: 0; }
+  .card-icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--rule); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); transition: all 0.15s; }
+  .card-icon-btn:active { background: var(--cream-dark); }
+  .card-icon-btn svg { width: 15px; height: 15px; }
+  .card-icon-btn.fav { color: var(--gold); border-color: var(--gold-pale); }
+  .card-icon-btn.read { color: #1D9E75; border-color: #9FE1CB; background: #E1F5EE; }
+  [data-theme="dark"] .card-icon-btn.read { background: #0A2818; border-color: #085041; }
+  .card-title { font-family: var(--serif); font-size: 18px; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 8px; }
+  .article-card.is-read .card-title { color: var(--ink-faint); font-weight: 400; font-style: italic; }
+  .article-card.is-read { opacity: 0.55; }
+  .card-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; font-weight: 400; }
+  .card-divider { height: 1px; background: var(--rule); margin: 0 20px; }
+
+  /* ── HERO CARD ── */
+  .hero-card { margin: 14px 20px 0; border-radius: 16px; background: var(--ink); color: var(--cream); padding: 22px; position: relative; overflow: hidden; cursor: pointer; animation: fadeUp 0.35s ease both; }
+  .hero-card::before { content: ''; position: absolute; top: 0; right: 0; width: 130px; height: 130px; background: var(--gold); opacity: 0.08; border-radius: 50%; transform: translate(40px, -40px); }
+  .hero-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: 10px; }
+  .hero-title { font-family: var(--serif); font-size: 20px; font-weight: 500; line-height: 1.3; color: var(--cream); margin-bottom: 12px; font-style: italic; }
+  .hero-bottom { display: flex; align-items: center; gap: 8px; }
+  .hero-av { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; }
+  .hero-author-name { font-size: 12px; color: rgba(240,234,224,0.7); flex: 1; }
+  .hero-date { font-size: 11px; color: rgba(240,234,224,0.4); }
+  .hero-icons { display: flex; gap: 2px; }
+  .hero-icon-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(240,234,224,0.6); transition: all 0.15s; }
+  .hero-icon-btn:active { background: rgba(255,255,255,0.2); }
+  .hero-icon-btn svg { width: 15px; height: 15px; }
+  .hero-icon-btn.fav { color: var(--gold); border-color: rgba(196,150,58,0.4); }
+  .hero-icon-btn.read { color: #5DCAA5; border-color: rgba(93,202,165,0.4); background: rgba(93,202,165,0.12); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--cream); border-top: 1px solid var(--rule); display: flex; padding-bottom: var(--safe-bottom); z-index: 100; }
+  .nav-tab { flex: 1; padding: 11px 4px 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; border: none; background: none; cursor: pointer; color: var(--ink-faint); transition: color 0.15s; position: relative; }
+  .nav-tab.active { color: var(--ink); }
+  .nav-tab svg { width: 22px; height: 22px; }
+  .nav-tab-label { font-size: 10px; letter-spacing: 0.04em; }
+  .nav-badge { position: absolute; top: 8px; background: var(--gold); color: var(--cream); font-size: 9px; font-weight: 500; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 12px; margin-top: -2px; }
+
+  /* ── DETAIL ── */
+  .detail-topbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; z-index: 50; background: var(--cream); }
+  .back-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--rule); background: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); flex-shrink: 0; }
+  .back-btn:active { background: var(--cream-dark); }
+  .detail-venue { font-size: 12px; color: var(--ink-muted); flex: 1; text-align: center; }
+  .detail-content { padding: 24px 20px; flex: 1; overflow-y: auto; padding-bottom: 32px; }
+  .detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .detail-title { font-family: var(--serif); font-size: 25px; font-weight: 500; line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+  .detail-author-row { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
+  .detail-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+  .detail-author-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .detail-author-venue { font-size: 12px; color: var(--ink-muted); }
+  .detail-author-date { margin-left: auto; font-size: 11px; color: var(--ink-faint); }
+  .detail-open-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: var(--ink); color: var(--cream); border: none; border-radius: 12px; cursor: pointer; font-family: var(--sans); font-size: 14px; transition: opacity 0.15s; margin-bottom: 12px; }
+  .detail-open-btn:active { opacity: 0.8; }
+  .detail-secondary-btns { display: flex; gap: 8px; }
+  .detail-sec-btn { flex: 1; padding: 12px; background: var(--cream-dark); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; font-family: var(--sans); font-size: 12px; text-align: center; }
+  .detail-sec-btn.fav { color: var(--gold); border-color: var(--gold); background: var(--gold-pale); }
+
+  /* ── SCREEN HEADER ── */
+  .screen-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--rule); }
+  .screen-header-title { font-family: var(--serif); font-size: 24px; font-weight: 500; }
+  .screen-header-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+  /* ── AUTHORS ── */
+  .authors-grid { padding: 4px 20px; display: flex; flex-direction: column; }
+  .author-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--rule); cursor: pointer; animation: fadeUp 0.3s ease both; }
+  .author-row.inactive { opacity: 0.4; }
+  .author-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .author-details { flex: 1; min-width: 0; }
+  .author-row-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .author-row-venue { font-size: 11px; color: var(--ink-muted); margin-top: 1px; }
+  .author-row-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .author-row-tag { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; }
+  .author-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .author-count { font-size: 11px; color: var(--ink-faint); }
+  .author-new-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+
+  /* ── TOGGLE ── */
+  .toggle { width: 38px; height: 22px; background: var(--rule); border-radius: 11px; position: relative; cursor: pointer; border: none; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--ink); }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--cream); transition: transform 0.2s; }
+  .toggle.on::after { transform: translateX(16px); }
+  [data-theme="dark"] .toggle::after { background: var(--ink-faint); }
+  [data-theme="dark"] .toggle.on::after { background: var(--cream); }
+
+  .add-fab { position: fixed; bottom: calc(72px + var(--safe-bottom) + 16px); right: 20px; width: 50px; height: 50px; border-radius: 50%; background: var(--ink); color: var(--cream); border: none; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 90; }
+  .add-fab:active { transform: scale(0.93); }
+
+  /* ── SHEET ── */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: flex-end; backdrop-filter: blur(4px); }
+  .sheet-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .sheet { width: 100%; background: var(--cream); border-radius: 20px 20px 0 0; padding: 0 20px calc(20px + var(--safe-bottom)); animation: slideUp 0.3s cubic-bezier(0.32,0.72,0,1); max-height: 85dvh; overflow-y: auto; }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--rule); margin: 12px auto 20px; }
+  .sheet-title { font-family: var(--serif); font-size: 20px; font-weight: 500; margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
+  .field input, .field select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--rule); background: var(--cream-dark); color: var(--ink); font-family: var(--sans); font-size: 15px; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--ink-muted); }
+  .field input::placeholder { color: var(--ink-faint); }
+  .tag-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-pick { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule); background: none; font-family: var(--sans); font-size: 12px; color: var(--ink-muted); cursor: pointer; }
+  .tag-pick.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .sheet-save { width: 100%; padding: 14px; margin-top: 20px; background: var(--ink); color: var(--cream); border: none; border-radius: 12px; font-family: var(--sans); font-size: 15px; cursor: pointer; }
+
+  /* ── TAG COLORS ── */
+  .tag-tech { background: #EAF2FF; color: #1A5FA8; }
+  .tag-markets { background: #EAFAF0; color: #1A7A45; }
+  .tag-politics { background: #FFF0F5; color: #A82060; }
+  .tag-ai { background: #F3F0FF; color: #5A30B0; }
+  .tag-macro { background: #FFF8EA; color: #9A5A10; }
+  [data-theme="dark"] .tag-tech { background: #0D1F38; color: #7AB8F5; }
+  [data-theme="dark"] .tag-markets { background: #0D2818; color: #6ED4A0; }
+  [data-theme="dark"] .tag-politics { background: #2E0D1A; color: #F0709A; }
+  [data-theme="dark"] .tag-ai { background: #1A0D38; color: #B090F0; }
+  [data-theme="dark"] .tag-macro { background: #2A1800; color: #E0A040; }
+  .av-a { background: #D4EAFF; color: #0A4A90; }
+  .av-b { background: #C8F0E0; color: #0A5030; }
+  .av-c { background: #FFD8C0; color: #8A2800; }
+  .av-d { background: #E8D8FF; color: #4A1890; }
+  .av-e { background: #FFE8A0; color: #6A3800; }
+  .av-f { background: #D0F0C0; color: #2A5010; }
+  .av-g { background: #FFD8E8; color: #8A0030; }
+  .av-h { background: #D8F0FF; color: #004A8A; }
+  .av-i { background: #F0E8FF; color: #4A0090; }
+  .av-j { background: #FFF0D8; color: #8A4A00; }
+  .av-k { background: #D8FFE8; color: #004A30; }
+  .av-l { background: #FFE8D8; color: #8A3000; }
+  .av-m { background: #E8D8FF; color: #300090; }
+  [data-theme="dark"] .av-a { background: #0A2040; color: #80B8F0; }
+  [data-theme="dark"] .av-b { background: #0A2818; color: #60C890; }
+  [data-theme="dark"] .av-c { background: #3A1008; color: #F09060; }
+  [data-theme="dark"] .av-d { background: #200840; color: #A880E0; }
+  [data-theme="dark"] .av-e { background: #2A1800; color: #D0A040; }
+  [data-theme="dark"] .av-f { background: #102808; color: #80C860; }
+  [data-theme="dark"] .av-g { background: #380010; color: #F070A0; }
+  [data-theme="dark"] .av-h { background: #001838; color: #70B8F8; }
+  [data-theme="dark"] .av-i { background: #180038; color: #C080F8; }
+  [data-theme="dark"] .av-j { background: #381800; color: #F0A060; }
+  [data-theme="dark"] .av-k { background: #001828; color: #60D0A0; }
+  [data-theme="dark"] .av-l { background: #381000; color: #F08060; }
+  [data-theme="dark"] .av-m { background: #100038; color: #9060F8; }
+
+  /* ── EMPTY / LOADING ── */
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px; text-align: center; gap: 10px; }
+  .empty-icon { font-size: 34px; opacity: 0.2; }
+  .empty-title { font-family: var(--serif); font-size: 18px; color: var(--ink-muted); }
+  .empty-sub { font-size: 13px; color: var(--ink-faint); line-height: 1.5; }
+  .loading-bar { display: flex; gap: 6px; padding: 32px 20px; justify-content: center; }
+  .loading-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); opacity: 0.3; animation: ldot 1.2s infinite; }
+  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes ldot { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  .section-label { padding: 14px 20px 0; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+  .toast { position: fixed; bottom: calc(80px + var(--safe-bottom) + 12px); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--cream); padding: 10px 20px; border-radius: 999px; font-size: 13px; z-index: 300; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ── FEED ── -->
+<div class="screen active" id="screen-feed">
+  <div class="status-space"></div>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">News<span>room</span></div>
+      <div class="topbar-byline">— <span>Sergio Campos</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="triggerFetch()" title="Atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      </button>
+      <button class="icon-btn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="date-bar">
+    <div class="date-header" id="today-date"></div>
+    <div class="last-update">Atualizado: <span id="last-update-time">—</span></div>
+  </div>
+  <div class="pills-wrap">
+    <div class="pills">
+      <button class="pill active" onclick="filterTag('all',this)">Tudo</button>
+      <button class="pill" onclick="filterTag('Tecnologia',this)">Tecnologia</button>
+      <button class="pill" onclick="filterTag('IA',this)">IA</button>
+      <button class="pill" onclick="filterTag('Mercados',this)">Mercados</button>
+      <button class="pill" onclick="filterTag('Política',this)">Política</button>
+      <button class="pill" onclick="filterTag('Macro',this)">Macro</button>
+      <button class="pill" onclick="filterTag('__unread',this)">Não lidos</button>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="feed" id="feed-list"><div class="loading-bar"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+</div>
+
+<!-- ── DETAIL ── -->
+<div class="screen" id="screen-detail">
+  <div class="status-space"></div>
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="goBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="detail-venue" id="detail-venue-top"></div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="detail-content" id="detail-content"></div>
+</div>
+
+<!-- ── AUTHORS ── -->
+<div class="screen" id="screen-authors">
+  <div class="status-space"></div>
+  <div class="screen-header">
+    <div class="screen-header-title">Autores</div>
+    <div class="screen-header-sub" id="authors-count"></div>
+  </div>
+  <div class="authors-grid" id="authors-grid"><div class="loading-bar"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+  <div style="height:calc(80px + var(--safe-bottom))"></div>
+  <button class="add-fab" onclick="openSheet()">+</button>
+</div>
+
+<!-- ── FAVORITES ── -->
+<div class="screen" id="screen-favorites">
+  <div class="status-space"></div>
+  <div class="screen-header">
+    <div class="screen-header-title">Favoritos</div>
+    <div class="screen-header-sub" id="fav-count"></div>
+  </div>
+  <div class="feed" id="fav-list"><div class="loading-bar"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+</div>
+
+<!-- ── AUTHOR ARTICLES ── -->
+<div class="screen" id="screen-author-articles">
+  <div class="status-space"></div>
+  <div class="detail-topbar">
+    <button class="back-btn" onclick="goBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="detail-venue" id="author-screen-name"></div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="feed" id="author-articles-list"></div>
+</div>
+
+<!-- ── BOTTOM NAV ── -->
+<div class="bottom-nav">
+  <button class="nav-tab active" id="nav-feed" onclick="showScreen('screen-feed');setNav(this);loadFeed()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="nav-tab-label">Feed</span>
+    <span class="nav-badge" id="nav-unread-badge" style="display:none"></span>
+  </button>
+  <button class="nav-tab" id="nav-favorites" onclick="showScreen('screen-favorites');setNav(this);loadFavorites()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <span class="nav-tab-label">Favoritos</span>
+  </button>
+  <button class="nav-tab" id="nav-authors" onclick="showScreen('screen-authors');setNav(this);loadAuthors()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span class="nav-tab-label">Autores</span>
+  </button>
+</div>
+
+<!-- ── ADD SHEET ── -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Novo autor</div>
+    <div class="field"><label>Nome</label><input id="f-name" placeholder="Ex: Sérgio Vale" /></div>
+    <div class="field"><label>Veículo</label><input id="f-venue" placeholder="Ex: Valor Econômico" /></div>
+    <div class="field"><label>Página do autor</label><input id="f-link" placeholder="https://…" /></div>
+    <div class="field">
+      <label>Modo de busca</label>
+      <select id="f-mode" onchange="toggleModeFields()">
+        <option value="rss">RSS direto</option>
+        <option value="filter">Filtrar feed</option>
+        <option value="scrape">Scraping</option>
+      </select>
+    </div>
+    <div id="field-rss" class="field"><label>URL do RSS</label><input id="f-rss" placeholder="https://…/feed" /></div>
+    <div id="field-filter" class="field" style="display:none"><label>URL do feed geral</label><input id="f-filter-url" placeholder="https://…" /></div>
+    <div id="field-byline" class="field" style="display:none"><label>Byline exato</label><input id="f-byline" placeholder="Ex: Thomas L. Friedman" /></div>
+    <div id="field-scrape" class="field" style="display:none"><label>URL para scraping</label><input id="f-scrape" placeholder="https://…" /></div>
+    <div class="field"><label>Tags</label><div class="tag-picker" id="tag-picker"></div></div>
+    <button class="sheet-save" onclick="saveAuthor()">Salvar autor</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://100.124.203.7:8000';
+const AVCOLORS = ['av-a','av-b','av-c','av-d','av-e','av-f','av-g','av-h','av-i','av-j','av-k','av-l','av-m'];
+const ALL_TAGS = ['Tecnologia','IA','Mercados','Política','Macro'];
+const TAG_CLASS = {'Tecnologia':'tag-tech','Mercados':'tag-markets','Política':'tag-politics','IA':'tag-ai','Macro':'tag-macro'};
+const VENUE_SHORT = {'Bloomberg':'Bloomberg','Financial Times':'FT','The New York Times':'NYT','Estadão':'Estadão','O Globo':'O Globo','The Economist':'Economist'};
+
+let authors = [];
+let articles = [];
+let activeFilter = 'all';
+let prevScreen = 'screen-feed';
+let lastUpdate = null;
+
+async function api(path, opts={}) {
+  try {
+    const r = await fetch(API+path, {headers:{'Content-Type':'application/json'},...opts});
+    if(!r.ok) throw new Error(r.status);
+    return await r.json();
+  } catch(e) { showToast('Erro ao conectar'); throw e; }
+}
+
+// Init
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+loadFeed();
+
+async function loadFeed() {
+  authors = await api('/authors/');
+  const p = new URLSearchParams({limit:100});
+  if (activeFilter==='__unread') p.set('unread_only','true');
+  else if (activeFilter==='__fav') p.set('favorites_only','true');
+  else if (activeFilter!=='all') p.set('tag',activeFilter);
+  // Only active authors
+  articles = await api('/articles/?'+p);
+  // Filter to active authors only
+  const activeIds = new Set(authors.filter(a=>a.active).map(a=>a.id));
+  articles = articles.filter(a=>activeIds.has(a.author_id));
+  renderFeed(articles, 'feed-list');
+  updateUnreadBadge();
+  updateLastUpdate();
+}
+
+function updateLastUpdate() {
+  const el = document.getElementById('last-update-time');
+  const now = new Date();
+  el.textContent = now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  lastUpdate = now;
+}
+
+function initials(name) { return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function color(idx) { return AVCOLORS[(idx||0) % AVCOLORS.length]; }
+function venueShort(v) { return VENUE_SHORT[v]||v; }
+function fmtDate(iso) {
+  if(!iso) return '';
+  const d = new Date(iso), now = new Date(), diff = (now-d)/1000;
+  if(diff<3600) return Math.floor(diff/60)+'m';
+  if(diff<86400) return Math.floor(diff/3600)+'h';
+  if(diff<172800) return 'Ontem';
+  return d.toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
+}
+
+function authorColorIdx(authorId) {
+  const idx = authors.findIndex(a=>a.id===authorId);
+  return idx >= 0 ? idx : 0;
+}
+
+function renderFeed(list, containerId) {
+  const el = document.getElementById(containerId);
+  if(!list.length) {
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">Nenhum artigo</div><div class="empty-sub">Tente outro filtro ou atualize.</div></div>`;
+    return;
+  }
+  let html='';
+  list.forEach((art,i)=>{
+    const auth = authors.find(a=>a.id===art.author_id)||{};
+    const ini = initials(auth.name);
+    const col = color(authorColorIdx(art.author_id));
+    const delay = Math.min(i*0.03,0.4);
+    const tags = art.tags||[];
+    const dateStr = fmtDate(art.published_at);
+    const isFav = art.is_favorite;
+    const isRead = art.is_read;
+    const title = (art.title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO)\s*$/i,'').trim();
+    const venue = venueShort(auth.venue||'');
+
+    if(i===0 && activeFilter==='all' && containerId==='feed-list') {
+      html += `
+        <div class="hero-card" onclick="openDetail(${art.id})" style="animation-delay:${delay}s">
+          <div class="hero-label">Destaque · ${auth.venue||''}</div>
+          <div class="hero-title">${title}</div>
+          <div class="hero-bottom">
+            <div class="hero-av ${col}">${ini}</div>
+            <span class="hero-author-name">${auth.name||''}</span>
+            <span class="hero-date">${dateStr}</span>
+            <div class="hero-icons" onclick="event.stopPropagation()">
+              <button class="hero-icon-btn ${isRead?'read':''}" onclick="markRead(${art.id},this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="hero-icon-btn ${isFav?'fav':''}" onclick="toggleFav(${art.id},this)">
+                <svg viewBox="0 0 24 24" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>`;
+      if(list.length>1) html+=`<div class="section-label">Mais recentes</div>`;
+    } else {
+      if(i>0) html+=`<div class="card-divider"></div>`;
+      html+=`
+        <div class="article-card ${isRead?'is-read':''}" onclick="openDetail(${art.id})" style="animation-delay:${delay}s" id="card-${art.id}">
+          <div class="card-meta">
+            <div class="author-pill" onclick="event.stopPropagation();openAuthorArticles(${auth.id},'${(auth.name||'').replace(/'/g,"\\'")}')">
+              <div class="av-mini ${col}">${ini}</div>
+              <span class="author-pill-name">${auth.name||''}</span><span class="author-pill-sep"> · </span><span class="author-pill-venue">${venue}</span>
+            </div>
+            ${!isRead?'<div class="unread-dot"></div>':''}
+            <span class="card-date">${dateStr}</span>
+            <div class="card-icons" onclick="event.stopPropagation()">
+              <button class="card-icon-btn ${isRead?'read':''}" onclick="markRead(${art.id},this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="card-icon-btn ${isFav?'fav':''}" onclick="toggleFav(${art.id},this)">
+                <svg viewBox="0 0 24 24" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-title">${title}</div>
+          <div class="card-tags">${tags.map(t=>`<span class="card-tag ${TAG_CLASS[t]||''}">${t}</span>`).join('')}</div>
+        </div>`;
+    }
+  });
+  el.innerHTML = html;
+}
+
+async function openDetail(id) {
+  const art = articles.find(a=>a.id===id);
+  if(!art) return;
+  const auth = authors.find(a=>a.id===art.author_id)||{};
+  const col = color(authorColorIdx(art.author_id));
+  const ini = initials(auth.name);
+  const title = (art.title||'').replace(/\s*-\s*(O GLOBO|O Globo|GLOBO|Estadão|ESTADÃO)\s*$/i,'').trim();
+  await api(`/articles/${id}/read`,{method:'PATCH'});
+  art.is_read = true;
+  updateUnreadBadge();
+  document.getElementById('detail-venue-top').textContent = auth.venue||'';
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-tags">${(art.tags||[]).map(t=>`<span class="card-tag ${TAG_CLASS[t]||''}">${t}</span>`).join('')}</div>
+    <div class="detail-title">${title}</div>
+    <div class="detail-author-row">
+      <div class="detail-av ${col}">${ini}</div>
+      <div><div class="detail-author-name">${auth.name||''}</div><div class="detail-author-venue">${auth.venue||''}</div></div>
+      <div class="detail-author-date">${art.published_at?fmtDate(art.published_at):''}</div>
+    </div>
+    <a href="${art.url}" target="_blank" style="text-decoration:none">
+      <button class="detail-open-btn">Ler artigo completo →</button>
+    </a>
+    <div class="detail-secondary-btns">
+      <button class="detail-sec-btn ${art.is_favorite?'fav':''}" id="fav-detail-${id}" onclick="toggleFavDetail(${id})">
+        ${art.is_favorite?'★ Salvo':'☆ Salvar'}
+      </button>
+    </div>`;
+  showScreen('screen-detail');
+}
+
+async function toggleFavDetail(id) {
+  const data = await api(`/articles/${id}/favorite`,{method:'PATCH'});
+  const art = articles.find(a=>a.id===id);
+  if(art) art.is_favorite = data.is_favorite;
+  const btn = document.getElementById(`fav-detail-${id}`);
+  if(btn){btn.textContent=data.is_favorite?'★ Salvo':'☆ Salvar';btn.className='detail-sec-btn'+(data.is_favorite?' fav':'');}
+  showToast(data.is_favorite?'Artigo salvo':'Removido dos favoritos');
+}
+
+async function markRead(id, btn) {
+  await api(`/articles/${id}/read`,{method:'PATCH'});
+  const art = articles.find(a=>a.id===id);
+  if(art) art.is_read = true;
+  const card = document.getElementById(`card-${id}`);
+  if(card) card.classList.add('is-read');
+  if(btn) btn.classList.add('read');
+  updateUnreadBadge();
+}
+
+async function toggleFav(id, btn) {
+  const data = await api(`/articles/${id}/favorite`,{method:'PATCH'});
+  const art = articles.find(a=>a.id===id);
+  if(art) art.is_favorite = data.is_favorite;
+  if(btn){
+    btn.classList.toggle('fav',data.is_favorite);
+    btn.querySelector('svg').setAttribute('fill',data.is_favorite?'currentColor':'none');
+  }
+  showToast(data.is_favorite?'Artigo salvo':'Removido dos favoritos');
+}
+
+function filterTag(tag, btn) {
+  activeFilter = tag;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  loadFeed();
+}
+
+async function loadAuthors() {
+  authors = await api('/authors/');
+  document.getElementById('authors-count').textContent = `${authors.length} autores`;
+  const grid = document.getElementById('authors-grid');
+  grid.innerHTML = authors.map((a,i)=>{
+    const ini = initials(a.name);
+    const col = AVCOLORS[i % AVCOLORS.length];
+    const hasNew = articles.some(x=>x.author_id===a.id&&!x.is_read);
+    const isOn = a.active !== false;
+    return `<div class="author-row ${isOn?'':'inactive'}" style="animation-delay:${i*0.04}s">
+      <div class="author-av ${col}" onclick="openAuthorArticles(${a.id},'${a.name.replace(/'/g,"\\'")}')" style="cursor:pointer">${ini}</div>
+      <div class="author-details" onclick="openAuthorArticles(${a.id},'${a.name.replace(/'/g,"\\'")}')">
+        <div class="author-row-name">${a.name}</div>
+        <div class="author-row-venue">${a.venue}</div>
+        <div class="author-row-tags">${(a.tags||[]).map(t=>`<span class="author-row-tag ${TAG_CLASS[t]||''}">${t}</span>`).join('')}</div>
+      </div>
+      <div class="author-meta">
+        <span class="author-count">${a.article_count} art.</span>
+        ${hasNew?'<div class="author-new-dot"></div>':''}
+      </div>
+      <button class="toggle ${isOn?'on':''}" onclick="toggleAuthor(${a.id},this)" title="${isOn?'Desativar':'Ativar'}"></button>
+    </div>`;
+  }).join('');
+}
+
+async function toggleAuthor(id, btn) {
+  const author = authors.find(a=>a.id===id);
+  if(!author) return;
+  const newActive = !author.active;
+  await api(`/authors/${id}`,{method:'PATCH',body:JSON.stringify({active:newActive})});
+  author.active = newActive;
+  btn.classList.toggle('on', newActive);
+  btn.closest('.author-row').classList.toggle('inactive', !newActive);
+  showToast(newActive ? `${author.name} ativado` : `${author.name} desativado`);
+}
+
+async function openAuthorArticles(authorId, authorName) {
+  document.getElementById('author-screen-name').textContent = authorName;
+  document.getElementById('author-articles-list').innerHTML = '<div class="loading-bar"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>';
+  showScreen('screen-author-articles');
+  const list = await api(`/articles/?author_id=${authorId}&limit=60`);
+  const saved = activeFilter;
+  activeFilter = '__author__';
+  renderFeed(list, 'author-articles-list');
+  activeFilter = saved;
+}
+
+async function loadFavorites() {
+  const favs = await api('/articles/?favorites_only=true&limit=60');
+  document.getElementById('fav-count').textContent = `${favs.length} artigo${favs.length!==1?'s':''} salvos`;
+  const el = document.getElementById('fav-list');
+  if(!favs.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">★</div><div class="empty-title">Sem favoritos ainda</div><div class="empty-sub">Salve artigos para encontrá-los aqui.</div></div>`;
+    return;
+  }
+  const saved = activeFilter;
+  activeFilter = '__fav__';
+  renderFeed(favs,'fav-list');
+  activeFilter = saved;
+}
+
+async function triggerFetch() {
+  showToast('Buscando novos artigos…');
+  await api('/fetch',{method:'POST'});
+  setTimeout(()=>{ loadFeed(); showToast('Feed atualizado!'); }, 5000);
+}
+
+function openSheet() {
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('tag-picker').innerHTML = ALL_TAGS.map(t=>`<button class="tag-pick" onclick="this.classList.toggle('on')">${t}</button>`).join('');
+}
+function closeSheet(e){ if(e.target===document.getElementById('sheet-overlay')) document.getElementById('sheet-overlay').classList.remove('open'); }
+function toggleModeFields(){
+  const m = document.getElementById('f-mode').value;
+  document.getElementById('field-rss').style.display = m==='rss'?'':'none';
+  document.getElementById('field-filter').style.display = m==='filter'?'':'none';
+  document.getElementById('field-byline').style.display = m==='filter'?'':'none';
+  document.getElementById('field-scrape').style.display = m==='scrape'?'':'none';
+}
+async function saveAuthor(){
+  const name = document.getElementById('f-name').value.trim();
+  const venue = document.getElementById('f-venue').value.trim();
+  const mode = document.getElementById('f-mode').value;
+  if(!name||!venue){showToast('Preencha nome e veículo');return;}
+  const tags = [...document.querySelectorAll('.tag-pick.on')].map(b=>b.textContent);
+  const body = {name,venue,page_url:document.getElementById('f-link').value.trim()||null,fetch_mode:mode,tags,
+    rss_url:mode==='rss'?document.getElementById('f-rss').value.trim()||null:null,
+    filter_feed_url:mode==='filter'?document.getElementById('f-filter-url').value.trim()||null:null,
+    filter_byline:mode==='filter'?document.getElementById('f-byline').value.trim()||null:null,
+    scrape_url:mode==='scrape'?document.getElementById('f-scrape').value.trim()||null:null};
+  await api('/authors/',{method:'POST',body:JSON.stringify(body)});
+  document.getElementById('sheet-overlay').classList.remove('open');
+  showToast(`${name} adicionado!`);
+  loadAuthors();
+}
+
+function updateUnreadBadge(){
+  const n = articles.filter(a=>!a.is_read).length;
+  const b = document.getElementById('nav-unread-badge');
+  b.style.display=n?'':'none'; b.textContent=n;
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+function showScreen(id){
+  if(!['screen-detail','screen-author-articles'].includes(id)) prevScreen=id;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goBack(){ showScreen(prevScreen); }
+function setNav(btn){ document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function toggleTheme(){ document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'':'dark'; }
+</script>
+</body>
+</html>
