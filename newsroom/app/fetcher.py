@@ -111,6 +111,7 @@ def fetch_rss(author: Author, session: Session):
         )
         session.add(article)
         saved += 1
+    _prune_author_articles(author, session)
     session.commit()
     logger.info(f"  → saved {saved} new articles for {author.name}")
 
@@ -148,6 +149,7 @@ def fetch_filtered_feed(author: Author, session: Session):
         )
         session.add(article)
         saved += 1
+    _prune_author_articles(author, session)
     session.commit()
     logger.info(f"  → saved {saved} new articles for {author.name}")
 
