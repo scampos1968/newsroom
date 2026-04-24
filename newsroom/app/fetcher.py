@@ -66,6 +66,15 @@ def fetch_article_date_estadao(url: str) -> Optional[datetime]:
     return None
 
 
+def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value).astimezone(timezone.utc).replace(tzinfo=None)
+    except Exception:
+        return None
+
+
 def parse_date(entry) -> Optional[datetime]:
     for attr in ("published_parsed", "updated_parsed"):
         val = getattr(entry, attr, None)
@@ -144,33 +153,67 @@ def fetch_filtered_feed(author: Author, session: Session):
 
 
 def fetch_scrape(author: Author, session: Session):
-    """Scrape author page. Handles Estadão (by URL pattern) and O Globo."""
+    """Scrape author page. Handles site-specific selectors when needed."""
     logger.info(f"Scraping: {author.name} → {author.scrape_url}")
+    is_andy = "andykessler.com" in author.scrape_url
     try:
         resp = httpx.get(author.scrape_url, headers=HEADERS, timeout=15, follow_redirects=True)
         resp.raise_for_status()
     except Exception as e:
-        logger.error(f"  Scrape error for {author.name}: {e}")
-        return
+        if not is_andy:
+            logger.error(f"  Scrape error for {author.name}: {e}")
+            return
+        try:
+            logger.warning(f"  Retrying {author.name} scrape with SSL verification disabled")
+            resp = httpx.get(
+                author.scrape_url,
+                headers=HEADERS,
+                timeout=15,
+                follow_redirects=True,
+                verify=False,
+            )
+            resp.raise_for_status()
+        except Exception as retry_error:
+            logger.error(f"  Scrape error for {author.name}: {retry_error}")
+            return
 
     soup = BeautifulSoup(resp.text, "html.parser")
     saved = 0
     considered = 0
     is_estadao = "estadao.com.br" in author.scrape_url
+    is_oglobo = "oglobo.globo.com" in author.scrape_url
+    is_peggy = "peggynoonan.com" in author.scrape_url
+    is_mint = "livemint.com" in author.scrape_url
     url_pattern = author.filter_byline  # reused field: URL pattern filter
     seen = set()
     keep_urls = []
 
-    # O Globo: use feed-post-link class which has correct titles
-    # Estadão: use all links and filter by URL pattern
-    selector = "a[href]" if is_estadao else "a.feed-post-link[href]"
+    if is_estadao:
+        selector = "a[href]"
+    elif is_oglobo:
+        selector = "a.feed-post-link[href]"
+    elif is_peggy:
+        selector = "h2.entry-title a[href]"
+    elif is_andy:
+        selector = "a[rel='bookmark'][href], h3 a[href], h2 a[href]"
+    elif is_mint:
+        selector = "div.listtostory h2.headline a[href]"
+    else:
+        selector = "a[href]"
 
     for a in soup.select(selector):
         href = a.get("href", "")
         if not href:
             continue
         if href.startswith("/"):
-            base = "https://www.estadao.com.br" if is_estadao else "https://oglobo.globo.com"
+            if is_estadao:
+                base = "https://www.estadao.com.br"
+            elif is_oglobo:
+                base = "https://oglobo.globo.com"
+            elif is_mint:
+                base = "https://www.livemint.com"
+            else:
+                base = author.scrape_url.rstrip("/")
             href = base + href
         if not href.startswith("http"):
             continue
@@ -185,14 +228,15 @@ def fetch_scrape(author: Author, session: Session):
 
         # Get title first — skip if empty
         title = a.get_text(strip=True)
-        if not is_estadao:
-            # For O Globo feed-post-link, text IS the title
+        if is_oglobo or is_peggy or is_andy or is_mint:
             pass
         else:
-            # For Estadão, look for a heading inside the link
+            # For Estadão and generic pages, prefer heading text inside the link.
             title_el = a.find(["h2", "h3", "h4"])
             if title_el:
                 title = title_el.get_text(strip=True)
+        if title.startswith("WSJ:"):
+            title = title[4:].strip()
         title = title.strip()
         if len(title) < 10:
             continue
@@ -209,6 +253,10 @@ def fetch_scrape(author: Author, session: Session):
             # Extract date from URL or fetch from article
             if is_estadao:
                 pub_date = fetch_article_date_estadao(href)
+            elif is_mint:
+                story = a.find_parent("div", class_="listtostory")
+                date_el = story.find("span", id=lambda value: value and value.startswith("tListBox_")) if story else None
+                pub_date = parse_iso_datetime(date_el.get("data-updatedtime") if date_el else None) or now_sp()
             else:
                 pub_date = extract_date_from_url(href) or now_sp()
 
