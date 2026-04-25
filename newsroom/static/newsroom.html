@@ -378,7 +378,8 @@ const API = 'http://100.124.203.7:8000';
 const AVCOLORS = ['av-a','av-b','av-c','av-d','av-e','av-f','av-g','av-h','av-i','av-j','av-k','av-l','av-m'];
 const ALL_TAGS = ['Tech','Mercados','Política','Macro','Geopolítica'];
 const TAG_CLASS = {'Tech':'tag-tech','Mercados':'tag-markets','Política':'tag-politics','Macro':'tag-macro','Geopolítica':'tag-geopolitics'};
-const VENUE_SHORT = {'Bloomberg':'Bloomberg','Financial Times':'FT','The New York Times':'NYT','Estadão':'Estadão','O Globo':'O Globo','The Economist':'Economist'};
+const VENUE_SHORT = {'Bloomberg':'Bloomberg','Financial Times':'FT','The New York Times':'NYT','The Wall Street Journal':'WSJ','Estadão':'Estadão','O Globo':'O Globo','The Economist':'Economist','GZERO Media':'GZERO'};
+const AUTHOR_VENUE_OVERRIDE = {'Ian Bremmer':'Eurasia'};
 const AUTHOR_PHOTOS = {
   'Carlos A. Di Franco':'/static/journalists/carlos-a-di-franco.jpg',
   'Editorial':'/static/journalists/editorial-estadao.png',
@@ -446,6 +447,7 @@ function updateLastUpdate() {
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 function color(idx) { return AVCOLORS[(idx||0) % AVCOLORS.length]; }
 function venueShort(v) { return VENUE_SHORT[v]||v; }
+function venueLabel(author) { return AUTHOR_VENUE_OVERRIDE[author?.name||''] || venueShort(author?.venue||''); }
 function escapeHtml(text) {
   return (text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
@@ -508,12 +510,12 @@ function renderFeed(list, containerId) {
     const isFav = art.is_favorite;
     const isRead = art.is_read;
     const title = cleanTitle(art.title);
-    const venue = venueShort(auth.venue||'');
+    const venue = venueLabel(auth);
 
     if(i===0 && activeFilter==='all' && containerId==='feed-list') {
       html += `
         <div class="hero-card" onclick="openDetail(${art.id})" style="animation-delay:${delay}s">
-          <div class="hero-label">Destaque · ${auth.venue||''}</div>
+          <div class="hero-label">Destaque · ${venue}</div>
           <div class="hero-title">${title}</div>
           <div class="hero-bottom">
             <div class="hero-av ${col}">${ini}</div>
@@ -575,13 +577,14 @@ async function openDetail(id) {
     updateReadUI(id, data.is_read);
     updateUnreadBadge();
   }
-  document.getElementById('detail-venue-top').textContent = auth.venue||'';
+  const venue = venueLabel(auth);
+  document.getElementById('detail-venue-top').textContent = venue;
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-tags">${(art.tags||[]).map(t=>`<span class="card-tag ${TAG_CLASS[t]||''}">${t}</span>`).join('')}</div>
     <div class="detail-title">${title}</div>
     <div class="detail-author-row">
       <div class="detail-av ${col}">${ini}</div>
-      <div><div class="detail-author-name">${auth.name||''}</div><div class="detail-author-venue">${auth.venue||''}</div></div>
+      <div><div class="detail-author-name">${auth.name||''}</div><div class="detail-author-venue">${venue}</div></div>
       <div class="detail-author-date">${art.published_at?fmtDate(art.published_at):''}</div>
     </div>
     ${renderAuthorPhoto(auth.name||'', ini, col)}
