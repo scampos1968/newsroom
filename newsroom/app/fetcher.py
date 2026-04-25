@@ -18,7 +18,7 @@ def cutoff():
     return now_sp() - timedelta(days=DAYS_LIMIT)
 
 from .database import engine
-from .models import Author, Article
+from .models import Author, Article, DeletedArticle
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,10 @@ HEADERS = {
         "Chrome/124.0.0.0 Safari/537.36"
     )
 }
+
+
+def is_deleted_url(url: str, session: Session) -> bool:
+    return session.get(DeletedArticle, url) is not None
 
 def extract_date_from_url(url: str) -> Optional[datetime]:
     """Extract publication date from URL pattern /YYYY/MM/."""
@@ -95,6 +99,8 @@ def fetch_rss(author: Author, session: Session):
         url = entry.get("link", "")
         if not url:
             continue
+        if is_deleted_url(url, session):
+            continue
         pub = parse_date(entry)
         if limit and pub and pub < limit:
             continue
@@ -132,6 +138,8 @@ def fetch_filtered_feed(author: Author, session: Session):
             continue
         url = entry.get("link", "")
         if not url:
+            continue
+        if is_deleted_url(url, session):
             continue
         pub = parse_date(entry)
         if limit and pub and pub < limit:
@@ -218,6 +226,8 @@ def fetch_scrape(author: Author, session: Session):
                 base = author.scrape_url.rstrip("/")
             href = base + href
         if not href.startswith("http"):
+            continue
+        if is_deleted_url(href, session):
             continue
 
         # Filter by URL pattern

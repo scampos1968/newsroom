@@ -47,3 +47,8 @@ class Article(SQLModel, table=True):
 
     def get_tags(self) -> List[str]:
         return json.loads(self.tags)
+
+
+class DeletedArticle(SQLModel, table=True):
+    url: str = Field(primary_key=True)
+    deleted_at: datetime = Field(default_factory=datetime.utcnow)

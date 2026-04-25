@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 from ..database import get_session
-from ..models import Article, Author
+from ..models import Article, Author, DeletedArticle
 
 router = APIRouter()
 
@@ -107,5 +107,7 @@ def delete_article(article_id: int, session: Session = Depends(get_session)):
     article = session.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+    if not session.get(DeletedArticle, article.url):
+        session.add(DeletedArticle(url=article.url))
     session.delete(article)
     session.commit()
