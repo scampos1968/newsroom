@@ -79,6 +79,17 @@ def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
         return None
 
 
+def parse_gzero_card_date(text: str) -> Optional[datetime]:
+    import re as _re
+    m = _re.search(r"\b([A-Z][a-z]{2} \d{1,2}, \d{4})\b", text)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1), "%b %d, %Y").replace(tzinfo=timezone.utc).replace(tzinfo=None)
+    except Exception:
+        return None
+
+
 def parse_date(entry) -> Optional[datetime]:
     for attr in ("published_parsed", "updated_parsed"):
         val = getattr(entry, attr, None)
@@ -194,6 +205,7 @@ def fetch_scrape(author: Author, session: Session):
     is_oglobo = "oglobo.globo.com" in author.scrape_url
     is_peggy = "peggynoonan.com" in author.scrape_url
     is_mint = "livemint.com" in author.scrape_url
+    is_gzero = "gzeromedia.com" in author.scrape_url
     url_pattern = author.filter_byline  # reused field: URL pattern filter
     seen = set()
     keep_urls = []
@@ -208,6 +220,8 @@ def fetch_scrape(author: Author, session: Session):
         selector = "a[rel='bookmark'][href], h3 a[href], h2 a[href]"
     elif is_mint:
         selector = "div.listtostory h2.headline a[href]"
+    elif is_gzero:
+        selector = "h2 a[href], h3 a[href]"
     else:
         selector = "a[href]"
 
@@ -222,6 +236,8 @@ def fetch_scrape(author: Author, session: Session):
                 base = "https://oglobo.globo.com"
             elif is_mint:
                 base = "https://www.livemint.com"
+            elif is_gzero:
+                base = "https://www.gzeromedia.com"
             else:
                 base = author.scrape_url.rstrip("/")
             href = base + href
@@ -269,6 +285,10 @@ def fetch_scrape(author: Author, session: Session):
                 story = a.find_parent("div", class_="listtostory")
                 date_el = story.find("span", id=lambda value: value and value.startswith("tListBox_")) if story else None
                 pub_date = parse_iso_datetime(date_el.get("data-updatedtime") if date_el else None) or now_sp()
+            elif is_gzero:
+                card = a.find_parent("article")
+                card_text = card.get_text(" ", strip=True) if card else ""
+                pub_date = parse_gzero_card_date(card_text) or now_sp()
             else:
                 pub_date = extract_date_from_url(href) or now_sp()
 

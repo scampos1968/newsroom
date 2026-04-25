@@ -194,13 +194,13 @@
   .tag-tech { background: #EAF2FF; color: #1A5FA8; }
   .tag-markets { background: #EAFAF0; color: #1A7A45; }
   .tag-politics { background: #FFF0F5; color: #A82060; }
-  .tag-ai { background: #F3F0FF; color: #5A30B0; }
   .tag-macro { background: #FFF8EA; color: #9A5A10; }
+  .tag-geopolitics { background: #EEF0FF; color: #3849A8; }
   [data-theme="dark"] .tag-tech { background: #0D1F38; color: #7AB8F5; }
   [data-theme="dark"] .tag-markets { background: #0D2818; color: #6ED4A0; }
   [data-theme="dark"] .tag-politics { background: #2E0D1A; color: #F0709A; }
-  [data-theme="dark"] .tag-ai { background: #1A0D38; color: #B090F0; }
   [data-theme="dark"] .tag-macro { background: #2A1800; color: #E0A040; }
+  [data-theme="dark"] .tag-geopolitics { background: #10173A; color: #9AA9FF; }
   .av-a { background: #D4EAFF; color: #0A4A90; }
   .av-b { background: #C8F0E0; color: #0A5030; }
   .av-c { background: #FFD8C0; color: #8A2800; }
@@ -269,11 +269,11 @@
   <div class="pills-wrap">
     <div class="pills">
       <button class="pill active" onclick="filterTag('all',this)">Tudo</button>
-      <button class="pill" onclick="filterTag('Tecnologia',this)">Tecnologia</button>
-      <button class="pill" onclick="filterTag('IA',this)">IA</button>
+      <button class="pill" onclick="filterTag('Tech',this)">Tech</button>
       <button class="pill" onclick="filterTag('Mercados',this)">Mercados</button>
       <button class="pill" onclick="filterTag('Política',this)">Política</button>
       <button class="pill" onclick="filterTag('Macro',this)">Macro</button>
+      <button class="pill" onclick="filterTag('Geopolítica',this)">Geopolítica</button>
       <button class="pill" onclick="filterTag('__unread',this)">Não lidos</button>
     </div>
   </div>
@@ -376,15 +376,17 @@
 <script>
 const API = 'http://100.124.203.7:8000';
 const AVCOLORS = ['av-a','av-b','av-c','av-d','av-e','av-f','av-g','av-h','av-i','av-j','av-k','av-l','av-m'];
-const ALL_TAGS = ['Tecnologia','IA','Mercados','Política','Macro'];
-const TAG_CLASS = {'Tecnologia':'tag-tech','Mercados':'tag-markets','Política':'tag-politics','IA':'tag-ai','Macro':'tag-macro'};
+const ALL_TAGS = ['Tech','Mercados','Política','Macro','Geopolítica'];
+const TAG_CLASS = {'Tech':'tag-tech','Mercados':'tag-markets','Política':'tag-politics','Macro':'tag-macro','Geopolítica':'tag-geopolitics'};
 const VENUE_SHORT = {'Bloomberg':'Bloomberg','Financial Times':'FT','The New York Times':'NYT','Estadão':'Estadão','O Globo':'O Globo','The Economist':'Economist'};
 const AUTHOR_PHOTOS = {
   'Carlos A. Di Franco':'/static/journalists/carlos-a-di-franco.jpg',
   'Editorial':'/static/journalists/editorial-estadao.png',
   'Elena Landau':'/static/journalists/elena-landau.png',
   'Fernando Gabeira':'/static/journalists/fernando-gabeira.jpg',
+  'Gideon Rachman':'/static/journalists/gideon-rachman.png',
   'Guy Perelmuter':'/static/journalists/guy-perelmuter.png',
+  'Ian Bremmer':'/static/journalists/ian-bremmer.jpg',
   'Lourival Sant\'Anna':'/static/journalists/lourival-sant-anna.jpg',
   'Malu Gaspar':'/static/journalists/malu-gaspar.png',
   'Mark Gurman':'/static/journalists/mark-gurman.jpg',
