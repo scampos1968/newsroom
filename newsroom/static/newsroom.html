@@ -54,6 +54,11 @@
   .pills { display: flex; gap: 8px; width: max-content; }
   .pill { padding: 5px 14px; border-radius: 999px; font-size: 11px; border: 1px solid var(--rule); background: transparent; color: var(--ink-muted); cursor: pointer; transition: all 0.18s; white-space: nowrap; }
   .pill.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .pill-tech { background: #EAF2FF; border-color: #C7DCF8; color: #1A5FA8; }
+  .pill-geopolitics { background: #EEF0FF; border-color: #D6DAFF; color: #3849A8; }
+  [data-theme="dark"] .pill-tech { background: #0D1F38; border-color: #23456F; color: #7AB8F5; }
+  [data-theme="dark"] .pill-geopolitics { background: #10173A; border-color: #2F3F77; color: #9AA9FF; }
+  .pill-tech.active, .pill-geopolitics.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
   .hr { height: 1px; background: var(--rule); margin: 12px 20px 0; }
   .feed { flex: 1; overflow-y: auto; padding-bottom: calc(80px + var(--safe-bottom)); }
 
@@ -269,11 +274,11 @@
   <div class="pills-wrap">
     <div class="pills">
       <button class="pill active" onclick="filterTag('all',this)">Tudo</button>
-      <button class="pill" onclick="filterTag('Tech',this)">Tech</button>
+      <button class="pill pill-tech" onclick="filterTag('Tech',this)">Tech</button>
       <button class="pill" onclick="filterTag('Mercados',this)">Mercados</button>
       <button class="pill" onclick="filterTag('Política',this)">Política</button>
       <button class="pill" onclick="filterTag('Macro',this)">Macro</button>
-      <button class="pill" onclick="filterTag('Geopolítica',this)">Geopolítica</button>
+      <button class="pill pill-geopolitics" onclick="filterTag('Geopolítica',this)">Geopolítica</button>
       <button class="pill" onclick="filterTag('__unread',this)">Não lidos</button>
     </div>
   </div>
